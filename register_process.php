@@ -2,7 +2,6 @@
 // Zde definujte Vaše databázové údaje
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root'); 
-// Heslo pro MAMP (často 'root' nebo prázdný řetězec '')
 define('DB_PASSWORD', 'root'); 
 define('DB_NAME', 'projekt_tw');
 
@@ -76,7 +75,7 @@ if (isset($_POST['register-submit'])) {
                     
                     if ($stmt_insert = $pdo->prepare($sql_insert)) {
                         
-                        // Vazba parametrů pro vložení - OPRAVA: Vazba pro jmeno a prijmeni
+                        
                         $stmt_insert->bindParam(":jmeno", $param_jmeno, PDO::PARAM_STR);
                         $stmt_insert->bindParam(":prijmeni", $param_prijmeni, PDO::PARAM_STR);
                         $stmt_insert->bindParam(":email", $param_email, PDO::PARAM_STR);

@@ -2,138 +2,112 @@
 // 1. Spuštění session
 session_start();
 
-// 2. Kontrola, zda je uživatel přihlášen
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+// 2. Kontrola přihlášení a role!
+// Přístup pouze pro studenty
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
+    // Přesměrování na login s chybou
+    header("Location: login.php?error=unauthorized_student");
     exit();
 }
 
-// 3. Konfigurace databáze
+// 3. Konfigurace DB
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root'); 
 define('DB_PASSWORD', 'root'); // Pro MAMP
 define('DB_NAME', 'projekt_tw');
 
 $student_id = $_SESSION['user_id'];
-$dochazkovy_kod = '';
-$kurz_id = null;
-$status = 'chyba'; 
+$dochazkovy_kod = null;
+$pdo = null;
 
-$result_message = '';
-$result_class = '';
+// Funkce pro přesměrování s chybou zpět na index
+function redirectToIndex($error_message) {
+    header("Location: index.php?status=error&message=" . urlencode($error_message));
+    exit();
+}
 
-// --- Logika zpracování POST požadavku ---
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+// Zpracování POST dat
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['dochazkovy_kod'])) {
     
-    // 4. Získání a validace dat z formuláře
-    if (isset($_POST['dochazkovy_kod'])) {
-        $dochazkovy_kod = trim($_POST['dochazkovy_kod']);
+    $dochazkovy_kod = trim(strtoupper($_POST['dochazkovy_kod'])); // Kód na velká písmena
+    
+    if (empty($dochazkovy_kod)) {
+        redirectToIndex("Kód nesmí být prázdný.");
     }
-    if (isset($_POST['kurz_id']) && is_numeric($_POST['kurz_id'])) {
-        $kurz_id = (int)$_POST['kurz_id'];
-    }
-
-    if (empty($dochazkovy_kod) || empty($kurz_id)) {
-        $result_message = '❌ **Chyba:** Musíte zadat kód a vybrat platný kurz.';
-        $result_class = 'alert-danger';
-        goto display_result; // Přejdeme rovnou na zobrazení výsledku
-    }
-
-    // 5. Zápis do databáze (pouze pokud je ID platné)
+    
     try {
-        // Připojení s portem 8889 pro MAMP
         $pdo = new PDO("mysql:host=" . DB_SERVER . ";port=8889;dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // 6. KONTROLA KÓDU a PLATNOSTI
-        // Hledáme kód, který se shoduje, odpovídá kurzu, a jehož expirace NEVYPRŠELA.
-        $sql_check = "SELECT id, predmet_id FROM dochazkove_kody 
-                      WHERE kod = :kod 
-                      AND predmet_id = :kurz_id 
-                      AND expirace > NOW() 
-                      AND stav = 'aktivni'"; 
-        $stmt_check = $pdo->prepare($sql_check);
-        $stmt_check->bindParam(':kod', $dochazkovy_kod, PDO::PARAM_STR);
-        $stmt_check->bindParam(':kurz_id', $kurz_id, PDO::PARAM_INT);
-        $stmt_check->execute();
-        $kod_row = $stmt_check->fetch(PDO::FETCH_ASSOC);
+        // ===============================================
+        // KROK 1: Ověření docházkového kódu
+        // ===============================================
+        $sql_kod = "
+            SELECT id, predmet_id, expirace, stav
+            FROM dochazkove_kody
+            WHERE kod = :kod AND stav = 'aktivni' AND expirace > NOW()
+        ";
+        $stmt_kod = $pdo->prepare($sql_kod);
+        $stmt_kod->bindParam(':kod', $dochazkovy_kod, PDO::PARAM_STR);
+        $stmt_kod->execute();
+        $kod_info = $stmt_kod->fetch(PDO::FETCH_ASSOC);
 
-        if ($kod_row) {
-            $kod_id = $kod_row['id']; // ID záznamu v dochazkove_kody
-
-            // 7. ZÁPIS DOCHÁZKY do tabulky student_registrace
-            // Používáme sloupce, které máte v DB (student_id, kurz_id, datum_registrace)
-            $sql_insert = "INSERT INTO student_registrace (student_id, kurz_id, datum_registrace) 
-                           VALUES (:student_id, :kurz_id, NOW())"; 
-            
-            $stmt_insert = $pdo->prepare($sql_insert);
-            $stmt_insert->bindParam(":student_id", $student_id, PDO::PARAM_INT);
-            $stmt_insert->bindParam(":kurz_id", $kurz_id, PDO::PARAM_INT);
-
-            if ($stmt_insert->execute()) {
-                $status = 'uspech';
-                $result_message = '✅ **Zápis úspěšný!** Docházka byla zaznamenána.';
-                
-                // 8. (Volitelné) OZNAČENÍ KÓDU JAKO POUŽITÉHO nebo Expirace
-                // Nastavení expirace na aktuální čas, aby se už nedal použít.
-                $sql_update_kod = "UPDATE dochazkove_kody SET stav = 'použito', expirace = NOW() WHERE id = :kod_id";
-                $stmt_update = $pdo->prepare($sql_update_kod);
-                $stmt_update->bindParam(':kod_id', $kod_id, PDO::PARAM_INT);
-                $stmt_update->execute();
-
-            } else {
-                $result_message = '❌ **Chyba DB:** Nepodařilo se provést vložení docházky.';
-            }
-        } else {
-            // Kód není platný, vypršela mu platnost nebo neodpovídá kurzu
-            $result_message = '❌ **Neplatný kód:** Zadaný kód neexistuje, neodpovídá kurzu, nebo mu vypršela platnost.';
+        if (!$kod_info) {
+            redirectToIndex("Kód je neplatný, expirovaný nebo byl již použit.");
         }
 
+        $kurz_id = $kod_info['predmet_id'];
+        $dochazkovy_kod_id = $kod_info['id'];
+
+
+        // KROK 2: Kontrola duplicity zápisu (jednou denně do jednoho kurzu)
+    
+        $sql_dupl = "
+            SELECT COUNT(*) 
+            FROM student_registrace 
+            WHERE student_id = :student_id 
+            AND kurz_id = :kurz_id 
+            AND DATE(datum_registrace) = CURDATE()
+        ";
+        $stmt_dupl = $pdo->prepare($sql_dupl);
+        $stmt_dupl->bindParam(':student_id', $student_id, PDO::PARAM_INT);
+        $stmt_dupl->bindParam(':kurz_id', $kurz_id, PDO::PARAM_INT);
+        $stmt_dupl->execute();
+        $count = $stmt_dupl->fetchColumn();
+
+        if ($count > 0) {
+            redirectToIndex("Docházka pro tento kurz byla již dnes zapsána.");
+        }
+
+        
+        // KROK 3: Zápis do tabulky student_registrace
+        
+        $sql_zapis = "
+            INSERT INTO student_registrace (student_id, kurz_id) 
+            VALUES (:student_id, :kurz_id)
+        ";
+        $stmt_zapis = $pdo->prepare($sql_zapis);
+        $stmt_zapis->bindParam(':student_id', $student_id, PDO::PARAM_INT);
+        $stmt_zapis->bindParam(':kurz_id', $kurz_id, PDO::PARAM_INT);
+        $stmt_zapis->execute();
+        
+        
+
+        // Úspěch: Přesměrování zpět na index s úspěchem
+        header("Location: index.php?status=success&message=" . urlencode("Docházka úspěšně zapsána pro kurz ID " . $kurz_id . "."));
+        exit();
+
     } catch (PDOException $e) {
-        // Chyba připojení nebo DB chyba (např. FOREIGN KEY violation)
-        error_log("Chyba při zápisu kódem: " . $e->getMessage());
-        $result_message = '❌ **Chyba DB/Připojení:** Detailní hláška: ' . htmlspecialchars($e->getMessage());
+        error_log("Chyba zápisu docházky: " . $e->getMessage());
+        redirectToIndex("Došlo k chybě při zápisu do databáze.");
+    } finally {
+        if (isset($pdo)) {
+            unset($pdo);
+        }
     }
 } else {
-    $result_message = '❌ **Chyba přístupu:** Tato stránka musí být volána z formuláře.';
+    // Přímý přístup
+    header("Location: index.php");
+    exit();
 }
-
-display_result: // Návěští pro goto
-
-// Určení CSS třídy pro zobrazení výsledku
-$result_class = ($status == 'uspech' ? 'alert-success' : 'alert-danger');
-
 ?>
-
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Výsledek zápisu docházky</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-
-<div class="container mt-5">
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">ℹ️ Stav zaznamenání docházky</h4>
-        </div>
-        <div class="card-body">
-            
-            <div class="alert <?php echo $result_class; ?> fs-5" role="alert">
-                <?php echo $result_message; ?>
-            </div>
-
-            <div class="mt-4 text-center">
-                <a href="index.php" class="btn btn-secondary btn-lg">Zpět na přehled</a>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>

@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 // 3. Konfigurace databáze
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root'); 
-define('DB_PASSWORD', 'root'); // Pro MAMP
+define('DB_PASSWORD', 'root'); 
 define('DB_NAME', 'projekt_tw');
 
 $student_id = $_SESSION['user_id'];
@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $kurz_id = (int)$_POST['predmet_id']; // Důležité: Tuto hodnotu vložíme do sloupce kurz_id
     } else {
         $status = 'chyba';
-        $result_message = '❌ **Chyba formuláře:** Nebyl zadán platný identifikátor kurzu.';
+        $result_message = '❌ Chyba formuláře: Nebyl zadán platný identifikátor kurzu.';
         $result_class = 'alert-danger';
     }
 
@@ -39,7 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $pdo = new PDO("mysql:host=" . DB_SERVER . ";port=8889;dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-            // ⭐ OPRAVENÝ SQL DOTAZ:
+            
             // Používáme tabulku student_registrace a sloupce student_id, kurz_id a datum_registrace
             $sql_insert = "INSERT INTO student_registrace (student_id, kurz_id, datum_registrace) 
                            VALUES (:student_id, :kurz_id, NOW())"; 
@@ -48,7 +48,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             $stmt_insert = $pdo->prepare($sql_insert);
             
-            // Vazba parametrů
+          
             $stmt_insert->bindParam(":student_id", $student_id, PDO::PARAM_INT);
             $stmt_insert->bindParam(":kurz_id", $kurz_id, PDO::PARAM_INT);
 

@@ -18,7 +18,7 @@ if (ini_get("session.use_cookies")) {
 session_destroy();
 
 // 4. Přesměrování na přihlašovací stránku
-// Doporučuje se přesměrovat na login.php nebo na úvodní stránku
+
 header("Location: login.php"); 
 exit();
 ?>

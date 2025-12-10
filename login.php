@@ -4,70 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Přihlášení uživatele</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" 
-          rel="stylesheet" 
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" 
-          crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .login-container {
+            max-width: 400px;
+            margin-top: 50px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
 <body>
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card shadow-lg">
-                <div class="card-header bg-success text-white">
-                    <h4 class="mb-0">Přihlášení uživatele</h4>
-                </div>
-                <div class="card-body">
-                    <?php 
-                    // Příklad, pokud byste chtěli zobrazit zprávu po přesměrování
-                    if (isset($_GET['status']) && $_GET['status'] == 'success'): ?>
-                        <div class="alert alert-success" role="alert">
-                            Registrace úspěšná! Nyní se můžete přihlásit.
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php if (isset($_GET['error'])): ?>
-                        <div class="alert alert-danger" role="alert">
-                            <?php 
-                                if ($_GET['error'] == 'nouser') {
-                                    echo "Uživatel s tímto e-mailem nebyl nalezen.";
-                                } elseif ($_GET['error'] == 'wrongpassword') {
-                                    echo "Nesprávné heslo. Zkuste to znovu.";
-                                } else {
-                                    echo "Došlo k chybě při přihlašování.";
-                                }
-                            ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <form action="login_process.php" method="POST">
-                        
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Emailová adresa</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="heslo" class="form-label">Heslo</label>
-                            <input type="password" class="form-control" id="heslo" name="heslo" required>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary w-100 mt-3">Přihlásit se</button>
-                    </form>
-                    
-                    <p class="text-center mt-3">
-                        Ještě nemáte účet? <a href="registrace_form.php">Zaregistrujte se zde.</a>
-                    </p>
-                </div>
+<div class="container">
+    <div class="login-container mx-auto">
+        <h2 class="text-center text-white bg-success p-3 rounded-top mb-0">Přihlášení uživatele</h2>
+        
+        <?php
+        if (isset($_GET['error'])) {
+            $error = $_GET['error'];
+            $message = 'Došlo k chybě při přihlašování.'; // Obecná chyba
+            
+            // Specifické rozlišení chyb
+            if ($error == 'incorrectpassword') {
+                $message = '❌ Nesprávné heslo. Zkuste to prosím znovu.';
+            } elseif ($error == 'nouser') {
+                $message = '❌ Uživatel s tímto e-mailem nebyl nalezen.';
+            } elseif ($error == 'emptyfields') {
+                $message = '❌ Vyplňte prosím obě pole.';
+            } elseif ($error == 'dbconnectionerror') {
+                $message = '❌ Chyba připojení k databázi. Zkontrolujte MAMP/Port.';
+            } elseif ($error == 'formerror') {
+                 $message = '❌ Chyba formuláře. Zkuste to znovu.';
+            }
+            
+            if (!empty($message)) {
+                echo '<div class="alert alert-danger mt-3 text-center">' . $message . '</div>';
+            }
+        }
+        ?>
+        
+        <form action="login_process.php" method="POST" class="mt-3">
+            <div class="mb-3">
+                <label for="email" class="form-label">Emailová adresa</label>
+                <input type="email" class="form-control" id="email" name="email" required>
             </div>
-        </div>
+            <div class="mb-3">
+                <label for="heslo" class="form-label">Heslo</label>
+                <input type="password" class="form-control" id="heslo" name="heslo" required>
+            </div>
+            <button type="submit" name="login-submit" class="btn btn-primary w-100">Přihlásit se</button>
+        </form>
+
+        <p class="mt-3 text-center">Ještě nemáte účet? <a href="register.php">Zaregistrujte se zde.</a></p>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" 
-        crossorigin="anonymous">
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
