@@ -23,7 +23,7 @@ $result_class = '';
 // --- Logika zpracování POST požadavku ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
-    // 4. Získání a validace ID kurzu (přijímáme ho z pole 'predmet_id' z index.php)
+    // 4. Získání a validace ID kurzu 
     if (isset($_POST['predmet_id']) && is_numeric($_POST['predmet_id'])) {
         $kurz_id = (int)$_POST['predmet_id']; // Důležité: Tuto hodnotu vložíme do sloupce kurz_id
     } else {
@@ -35,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 5. Zápis do databáze (pouze pokud je ID platné)
     if ($status != 'chyba') {
         try {
-            // Připojení s portem 8889 pro MAMP
+            
             $pdo = new PDO("mysql:host=" . DB_SERVER . ";port=8889;dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -44,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $sql_insert = "INSERT INTO student_registrace (student_id, kurz_id, datum_registrace) 
                            VALUES (:student_id, :kurz_id, NOW())"; 
 
-            // Poznámka: Sloupec 'datum_registrace' nyní slouží pro záznam docházky.
+            
             
             $stmt_insert = $pdo->prepare($sql_insert);
             

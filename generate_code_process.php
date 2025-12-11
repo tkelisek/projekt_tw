@@ -1,5 +1,5 @@
 <?php
-// ⭐ OPRAVA: Nastavení časové zóny, aby se NOW() shodovalo s expirací
+//  OPRAVA: Nastavení časové zóny, aby se NOW() shodovalo s expirací
 date_default_timezone_set('Europe/Prague'); 
 
 // 1. Spustíme session
@@ -15,9 +15,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'ucitel') {
 // 3. Konfigurace DB
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root'); 
-define('DB_PASSWORD', 'root'); // Pro MAMP
+define('DB_PASSWORD', 'root'); 
 define('DB_NAME', 'projekt_tw');
-define('DB_PORT', 8889); // Port pro MAMP
+define('DB_PORT', 8889); 
 
 $ucitel_id = $_SESSION['user_id'];
 $kurz_id = null;
@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $kurz_id = (int)$_POST['kurz_id'];
     }
     
-    // OPRAVA: Vynucení celé hodnoty, aby se zajistil správný výpočet
+    // Vynucení celé hodnoty, aby se zajistil správný výpočet
     if (isset($_POST['platnost']) && is_numeric($_POST['platnost'])) {
         $platnost_minut = (int)$_POST['platnost'];
     } else {

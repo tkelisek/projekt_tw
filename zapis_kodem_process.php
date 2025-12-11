@@ -15,6 +15,7 @@ define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root'); 
 define('DB_PASSWORD', 'root'); // Pro MAMP
 define('DB_NAME', 'projekt_tw');
+define('DB_PORT', 8889); // Port pro MAMP
 
 $student_id = $_SESSION['user_id'];
 $dochazkovy_kod = null;
@@ -36,12 +37,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['dochazkovy_kod'])) {
     }
     
     try {
-        $pdo = new PDO("mysql:host=" . DB_SERVER . ";port=8889;dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
+        $pdo = new PDO("mysql:host=" . DB_SERVER . ";port=" . DB_PORT . ";dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // ===============================================
+     
         // KROK 1: Ověření docházkového kódu
-        // ===============================================
+       
         $sql_kod = "
             SELECT id, predmet_id, expirace, stav
             FROM dochazkove_kody
@@ -83,8 +84,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['dochazkovy_kod'])) {
         // KROK 3: Zápis do tabulky student_registrace
         
         $sql_zapis = "
-            INSERT INTO student_registrace (student_id, kurz_id) 
-            VALUES (:student_id, :kurz_id)
+            INSERT INTO student_registrace (student_id, kurz_id, datum_registrace) 
+            VALUES (:student_id, :kurz_id, NOW())
         ";
         $stmt_zapis = $pdo->prepare($sql_zapis);
         $stmt_zapis->bindParam(':student_id', $student_id, PDO::PARAM_INT);
@@ -93,12 +94,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['dochazkovy_kod'])) {
         
         
 
+        // KROK 4 (Volitelný): Označení kódu jako spotřebovaného
+        // Tento krok je často dobré přidat, aby se kód nemohl zapsat opakovaně v průběhu platnosti.
+        // Není to ale nutné, pokud duplicitní zápis řeší KROK 2.
+
         // Úspěch: Přesměrování zpět na index s úspěchem
-        header("Location: index.php?status=success&message=" . urlencode("Docházka úspěšně zapsána pro kurz ID " . $kurz_id . "."));
+        header("Location: index.php?status=success&message=" . urlencode("Docházka úspěšně zapsána."));
         exit();
 
     } catch (PDOException $e) {
         error_log("Chyba zápisu docházky: " . $e->getMessage());
+        // Zde vracíme obecnou chybu, i když je nyní problém pravděpodobně vyřešen.
         redirectToIndex("Došlo k chybě při zápisu do databáze.");
     } finally {
         if (isset($pdo)) {

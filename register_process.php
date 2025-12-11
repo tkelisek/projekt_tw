@@ -1,5 +1,5 @@
 <?php
-// Zde definujte Vaše databázové údaje
+// Zde definujte  databázové údaje
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root'); 
 define('DB_PASSWORD', 'root'); 
@@ -28,7 +28,7 @@ if (isset($_POST['register-submit'])) {
 
     // --- 1. Validace dat ---
     
-    // 1.1 Kontrola prázdných polí (Nyní kontroluje i Jméno a Příjmení)
+    // 1.1 Kontrola prázdných polí 
     if (empty($jmeno) || empty($prijmeni) || empty($email) || empty($heslo) || empty($heslo_znovu)) {
         redirectToRegister('emptyfields');
     }
@@ -46,7 +46,7 @@ if (isset($_POST['register-submit'])) {
     // --- 2. Kontrola existence uživatele a připojení k DB ---
     
     try {
-        // Připojení k databázi (S portem 8889 pro MAMP - pokud používáte jiný, upravte port)
+        // Připojení k databázi 
         $pdo = new PDO("mysql:host=" . DB_SERVER . ";port=8889;dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -69,7 +69,7 @@ if (isset($_POST['register-submit'])) {
                     // 3.1 Hašování hesla
                     $hashed_password = password_hash($heslo, PASSWORD_DEFAULT);
 
-                    // SQL dotaz pro vložení nového uživatele - OPRAVA: Přidáno jmeno a prijmeni
+                    // SQL dotaz pro vložení nového uživatele
                     $sql_insert = "INSERT INTO uzivatele (jmeno, prijmeni, email, heslo) 
                                    VALUES (:jmeno, :prijmeni, :email, :heslo)";
                     

@@ -21,7 +21,7 @@ $success_message = '';
 $error_message = '';
 $seznam_ucitelu = [];
 
-// Zpracování zpráv z URL (např. po vytvoření učitele/kurzu/mazání)
+// Zpracování zpráv z URL 
 if (isset($_GET['status']) && isset($_GET['message'])) {
     $status = $_GET['status'];
     $message = htmlspecialchars($_GET['message']);

@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     exit();
 }
 
-// ⭐ NASTAVENÍ ČASOVÉ ZÓNY pro správné formátování data
+// NASTAVENÍ ČASOVÉ ZÓNY pro správné formátování data
 date_default_timezone_set('Europe/Prague'); 
 
 // 3. Konfigurace DB
